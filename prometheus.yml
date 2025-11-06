@@ -7,7 +7,7 @@ scrape_configs:
     static_configs:
       - targets: ["46.146.248.104:8042"]  # приложение
 
-  - job_name: "node_exporter"
+  - job_name: "node-exporter"
     static_configs:
       - targets: ["46.146.248.104:9100"]  # node exporter / железо
 
