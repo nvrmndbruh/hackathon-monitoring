@@ -12,6 +12,6 @@ scrape_configs:
     static_configs:
       - targets: ["192.168.0.104:8080"]  # cAdvisor / контейнеры
   
-  - job_name: "postgres_exporter"
+  - job_name: "postgres"
     static_configs:
       - targets: ["192.168.0.104:9187"]  # PostgreSQL node exporter
