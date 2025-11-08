@@ -1,72 +1,230 @@
 global:
   smtp_smarthost: 'localhost:587'
-  smtp_from: 'alertmanager@your-domain.com'
 
 route:
-  group_by: ['alertname']
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 1h
-  receiver: 'telegram-notifications'
+  group_by: ['alertname', 'instance']
+  group_wait: 5s
+  group_interval: 5s
+  repeat_interval: 5m
+  receiver: 'telegram-default'
   
   routes:
     - match:
+        alertname: NodeDown
+      group_wait: 3s
+      repeat_interval: 2m
+      receiver: 'telegram-node-down'
+      
+    - match:
+        alertname: RabbitMQDown
+      group_wait: 3s
+      repeat_interval: 2m
+      receiver: 'telegram-rabbit-down'
+      
+    - match:
+        alertname: PostgreSQLDown
+      group_wait: 3s
+      repeat_interval: 2m
+      receiver: 'telegram-postgres-down'
+      
+    - match:
+        alertname: HighMemoryUsage
+      group_wait: 3s
+      repeat_interval: 5m
+      receiver: 'telegram-memory-critical'
+
+    # ВОРНИНГИ - отдельные сообщения
+    - match:
+        alertname: HighCPUUsage
+      group_wait: 5s
+      repeat_interval: 10m
+      receiver: 'telegram-cpu-warning'
+      
+    - match:
+        alertname: HighDiskUsage
+      group_wait: 5s
+      repeat_interval: 10m
+      receiver: 'telegram-disk-warning'
+      
+    - match:
+        alertname: RabbitMQHighMemory
+      group_wait: 5s
+      repeat_interval: 10m
+      receiver: 'telegram-rabbit-warning'
+      
+    - match:
+        alertname: RabbitMQQueueGrowth
+      group_wait: 5s
+      repeat_interval: 10m
+      receiver: 'telegram-queue-warning'
+
+    # ОБЩИЕ НАСТРОЙКИ
+    - match:
         severity: critical
       receiver: 'telegram-critical'
-      repeat_interval: 10m
-      group_wait: 5s
+      repeat_interval: 5m
       
     - match:
         severity: warning
       receiver: 'telegram-warning'
-      repeat_interval: 30m
+      repeat_interval: 15m
 
 receivers:
-  - name: 'telegram-notifications'
+  # 🖥️ АЛЕРТЫ НА СЕРВИСЫ
+  - name: 'telegram-node-down'
     telegram_configs:
       - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
         chat_id: 1061129761
         parse_mode: 'HTML'
-        message: '🔄 <b>ALERT NOTIFICATION</b> 🔄
-{{ range .Alerts }}
-———————————————
-<b>🔔 {{ .Labels.alertname }}</b>
-<b>📍 Instance:</b> {{ .Labels.instance }}
-<b>🚨 Severity:</b> {{ .Labels.severity }}
-<b>📝 Summary:</b> {{ .Annotations.summary }}
-<b>⏰ Started:</b> {{ .StartsAt.Format "2006-01-02 15:04:05" }}
-{{ end }}'
+        message: '🖥️ <b>SERVICE OFFLINE</b>
 
+🔴 <b>Service:</b> {{ .GroupLabels.alertname }}
+📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
+⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
+📅 <b>Date:</b> {{ (index .Alerts 0).StartsAt.Format "02.01.2006" }}
+
+🚨 <b>Impact:</b> Service monitoring stopped
+🎯 <b>Action:</b> Check server connectivity'
+
+  - name: 'telegram-rabbit-down'
+    telegram_configs:
+      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
+        chat_id: 1061129761
+        parse_mode: 'HTML'
+        message: '🐇 <b>RABBITMQ DOWN</b>
+
+🔴 <b>Service:</b> Message Broker
+📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
+⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
+
+🚨 <b>Impact:</b> Message processing stopped
+🎯 <b>Action:</b> Restart RabbitMQ service'
+
+  - name: 'telegram-postgres-down'
+    telegram_configs:
+      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
+        chat_id: 1061129761
+        parse_mode: 'HTML'
+        message: '🐘 <b>POSTGRESQL DOWN</b>
+
+🔴 <b>Service:</b> Database
+📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
+⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
+
+🚨 <b>Impact:</b> Database access lost
+🎯 <b>Action:</b> Check PostgreSQL service'
+
+  # 💾 АЛЕРТЫ НА РЕСУРСЫ
+  - name: 'telegram-memory-critical'
+    telegram_configs:
+      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
+        chat_id: 1061129761
+        parse_mode: 'HTML'
+        message: '💾 <b>CRITICAL MEMORY USAGE</b>
+
+🟡 <b>Resource:</b> System Memory
+📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
+📊 <b>Usage:</b> {{ (index .Alerts 0).Annotations.description | reReplaceAll ".*is ([0-9.]+).*" "$1" }}%
+⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
+
+🚨 <b>Risk:</b> System instability
+🎯 <b>Action:</b> Check memory usage and processes'
+
+  - name: 'telegram-cpu-warning'
+    telegram_configs:
+      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
+        chat_id: 1061129761
+        parse_mode: 'HTML'
+        message: '🔥 <b>HIGH CPU USAGE</b>
+
+🟡 <b>Resource:</b> Processor
+📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
+📊 <b>Usage:</b> {{ (index .Alerts 0).Annotations.description | reReplaceAll ".*is ([0-9.]+).*" "$1" }}%
+⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
+
+💡 <b>Recommendation:</b> Optimize workloads'
+
+  - name: 'telegram-disk-warning'
+    telegram_configs:
+      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
+        chat_id: 1061129761
+        parse_mode: 'HTML'
+        message: '💽 <b>HIGH DISK USAGE</b>
+
+🟡 <b>Resource:</b> Storage
+📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
+📊 <b>Usage:</b> {{ (index .Alerts 0).Annotations.description | reReplaceAll ".*is ([0-9.]+).*" "$1" }}%
+⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
+
+💡 <b>Recommendation:</b> Clean up disk space'
+
+  # 🐇 RABBITMQ WARNINGS
+  - name: 'telegram-rabbit-warning'
+    telegram_configs:
+      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
+        chat_id: 1061129761
+        parse_mode: 'HTML'
+        message: '📈 <b>RABBITMQ MEMORY WARNING</b>
+
+🟡 <b>Service:</b> Message Broker
+📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
+📊 <b>Memory Usage:</b> {{ (index .Alerts 0).Annotations.description | reReplaceAll ".*is ([0-9.]+).*" "$1" }}%
+⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
+
+💡 <b>Note:</b> High memory usage may cause message delays'
+
+  - name: 'telegram-queue-warning'
+    telegram_configs:
+      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
+        chat_id: 1061129761
+        parse_mode: 'HTML'
+        message: '📊 <b>QUEUE GROWTH DETECTED</b>
+
+🟡 <b>Service:</b> RabbitMQ Queue
+📍 <b>Queue:</b> {{ .GroupLabels.queue }}
+📈 <b>Growth Rate:</b> {{ (index .Alerts 0).Annotations.description | reReplaceAll ".*at ([0-9.]+).*" "$1" }} msg/sec
+⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
+
+💡 <b>Note:</b> Queue is growing faster than messages are processed'
+
+  # 🔧 ОБЩИЕ РЕСИВЕРЫ (если не попали в конкретные)
   - name: 'telegram-critical'
     telegram_configs:
       - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
         chat_id: 1061129761
         parse_mode: 'HTML'
-        message: '🚨🚨 <b>CRITICAL ALERT</b> 🚨🚨
-{{ range .Alerts }}
-⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
-<b>🆘 {{ .Labels.alertname }}</b>
-<b>🔴 Instance:</b> <code>{{ .Labels.instance }}</code>
-<b>📛 Severity:</b> <b>CRITICAL</b>
-<b>📋 Description:</b> {{ .Annotations.description }}
-<b>🕐 Detected:</b> {{ .StartsAt.Format "15:04:05" }}
-<b>📅 Date:</b> {{ .StartsAt.Format "02/01/2006" }}
-⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
-{{ end }}
-<b>🎯 Action Required:</b> Immediate investigation needed!'
+        message: '🚨 <b>CRITICAL ALERT</b>
+
+🔴 <b>Alert:</b> {{ .GroupLabels.alertname }}
+📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
+⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
+
+{{ (index .Alerts 0).Annotations.summary }}
+🎯 <b>Action Required:</b> Immediate investigation'
 
   - name: 'telegram-warning'
     telegram_configs:
       - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
         chat_id: 1061129761
         parse_mode: 'HTML'
-        message: '⚠️ <b>WARNING ALERT</b> ⚠️
-{{ range .Alerts }}
-———————————————
-<b>📢 {{ .Labels.alertname }}</b>
-<b>📍 Instance:</b> <code>{{ .Labels.instance }}</code>
-<b>🟡 Severity:</b> WARNING
-<b>📝 Issue:</b> {{ .Annotations.summary }}
-<b>🕒 Started:</b> {{ .StartsAt.Format "15:04:05" }}
-{{ end }}
-<b>💡 Recommendation:</b> Monitor the situation'
+        message: '⚠️ <b>WARNING ALERT</b>
+
+🟡 <b>Alert:</b> {{ .GroupLabels.alertname }}
+📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
+⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
+
+{{ (index .Alerts 0).Annotations.summary }}
+💡 <b>Monitor:</b> Keep watching the situation'
+
+  - name: 'telegram-default'
+    telegram_configs:
+      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
+        chat_id: 1061129761
+        parse_mode: 'HTML'
+        message: '🔔 <b>ALERT NOTIFICATION</b>
+
+📢 <b>Alert:</b> {{ .GroupLabels.alertname }}
+📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
+⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
+
+{{ (index .Alerts 0).Annotations.summary }}'
