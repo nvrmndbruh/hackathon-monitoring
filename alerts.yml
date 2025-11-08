@@ -1,6 +1,7 @@
 groups:
   - name: infrastructure
     rules:
+      # Системные алерты
       - alert: NodeDown
         expr: up == 0
         for: 1m
@@ -28,6 +29,16 @@ groups:
           summary: "High memory usage on {{ $labels.instance }}"
           description: "Memory usage is {{ $value }}%"
 
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High disk usage on {{ $labels.instance }}"
+          description: "Disk usage is {{ $value }}% on {{ $labels.mountpoint }}"
+
+      # RabbitMQ алерты
       - alert: RabbitMQDown
         expr: rabbitmq_up == 0
         for: 1m
@@ -46,10 +57,40 @@ groups:
           summary: "High RabbitMQ memory usage"
           description: "RabbitMQ memory usage is {{ $value }}%"
 
-      - alert: TestAlert
-        expr: vector(1)
+      - alert: RabbitMQQueueGrowth
+        expr: rate(rabbitmq_queue_messages[5m]) > 10
+        for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Test alert"
-          description: "This is a test alert to check Telegram integration"
+          summary: "Rapid queue growth on {{ $labels.queue }}"
+          description: "Queue {{ $labels.queue }} is growing at {{ $value }} msg/sec"
+
+      # PostgreSQL алерты
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL exporter is down"
+          description: "Cannot connect to PostgreSQL"
+
+      - alert: PostgreSQLHighConnections
+        expr: pg_stat_activity_count / pg_stat_activity_max_connections > 0.8
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High PostgreSQL connections"
+          description: "PostgreSQL connections are at {{ $value }}% of limit"
+
+      # Container алерты
+      - alert: ContainerRestarted
+        expr: rate(container_start_time_seconds[5m]) * 60 > 2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container restarting frequently"
+          description: "Container {{ $labels.container_name }} is restarting too often"
