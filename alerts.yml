@@ -1,0 +1,55 @@
+groups:
+  - name: infrastructure
+    rules:
+      - alert: NodeDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance {{ $labels.instance }} is down"
+          description: "{{ $labels.instance }} has been down for more than 1 minute."
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}%"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}%"
+
+      - alert: RabbitMQDown
+        expr: rabbitmq_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RabbitMQ is down"
+          description: "RabbitMQ instance is not responding"
+
+      - alert: RabbitMQHighMemory
+        expr: (rabbitmq_node_mem_used / rabbitmq_node_mem_limit) * 100 > 85
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High RabbitMQ memory usage"
+          description: "RabbitMQ memory usage is {{ $value }}%"
+
+      - alert: TestAlert
+        expr: vector(1)
+        labels:
+          severity: warning
+        annotations:
+          summary: "Test alert"
+          description: "This is a test alert to check Telegram integration"
