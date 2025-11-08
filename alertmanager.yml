@@ -1,0 +1,26 @@
+global:
+  smtp_smarthost: 'localhost:587'
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'telegram-notifications'
+
+receivers:
+  - name: 'telegram-notifications'
+    telegram_configs:
+      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
+        chat_id: 1061129761
+        parse_mode: 'HTML'
+        message: '🔥 <b>Alert</b> 🔥
+🚨 {{ range .Alerts }}
+• <b>Alertname</b>: {{ .Labels.alertname }}
+• <b>Instance</b>: {{ .Labels.instance }}
+• <b>Severity</b>: {{ .Labels.severity }}
+• <b>Summary</b>: {{ .Annotations.summary }}
+• <b>Description</b>: {{ .Annotations.description }}
+⏰ <b>Starts</b>: {{ .StartsAt }}
+—————————————
+{{ end }}'
