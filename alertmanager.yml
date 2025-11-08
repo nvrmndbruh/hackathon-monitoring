@@ -71,7 +71,7 @@ receivers:
   - name: 'telegram-exporter-down'
     telegram_configs:
       - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 123456789
+        chat_id: 1061129761
         parse_mode: 'HTML'
         message: '📡 <b>MONITORING EXPORTER DOWN</b>
 
@@ -87,7 +87,7 @@ receivers:
   - name: 'telegram-service-down'
     telegram_configs:
       - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 123456789
+        chat_id: 1061129761
         parse_mode: 'HTML'
         message: '🖥️ <b>SERVICE DOWN</b>
 
@@ -103,7 +103,7 @@ receivers:
   - name: 'telegram-resource-critical'
     telegram_configs:
       - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 123456789
+        chat_id: 1061129761
         parse_mode: 'HTML'
         message: '💥 <b>CRITICAL RESOURCE USAGE</b>
 
@@ -119,7 +119,7 @@ receivers:
   - name: 'telegram-resource-warning'
     telegram_configs:
       - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 123456789
+        chat_id: 1061129761
         parse_mode: 'HTML'
         message: '⚠️ <b>RESOURCE WARNING</b>
 
