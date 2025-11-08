@@ -8,8 +8,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "Instance {{ $labels.instance }} is down"
-          description: "{{ $labels.instance }} has been down for more than 1 minute."
+          summary: "🚨 Service {{ $labels.instance }} is DOWN"
+          description: "The service on {{ $labels.instance }} has stopped responding. Immediate action required!"
 
       - alert: HighCPUUsage
         expr: 100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
@@ -17,8 +17,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "High CPU usage on {{ $labels.instance }}"
-          description: "CPU usage is {{ $value }}%"
+          summary: "🔥 High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value | humanize }}%. Consider optimizing or scaling."
 
       - alert: HighMemoryUsage
         expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
@@ -26,8 +26,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "High memory usage on {{ $labels.instance }}"
-          description: "Memory usage is {{ $value }}%"
+          summary: "💾 Critical memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanize }}%. Risk of system instability!"
 
       - alert: HighDiskUsage
         expr: (1 - (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})) * 100 > 85
@@ -35,8 +35,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "High disk usage on {{ $labels.instance }}"
-          description: "Disk usage is {{ $value }}% on {{ $labels.mountpoint }}"
+          summary: "💽 High disk usage on {{ $labels.instance }}"
+          description: "Disk usage on {{ $labels.mountpoint }} is {{ $value | humanize }}%"
 
       # RabbitMQ алерты
       - alert: RabbitMQDown
@@ -45,8 +45,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "RabbitMQ is down"
-          description: "RabbitMQ instance is not responding"
+          summary: "🐇 RabbitMQ SERVICE DOWN"
+          description: "RabbitMQ message broker is not responding. Message processing stopped!"
 
       - alert: RabbitMQHighMemory
         expr: (rabbitmq_node_mem_used / rabbitmq_node_mem_limit) * 100 > 85
@@ -54,8 +54,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "High RabbitMQ memory usage"
-          description: "RabbitMQ memory usage is {{ $value }}%"
+          summary: "📈 High RabbitMQ memory usage"
+          description: "RabbitMQ memory usage is {{ $value | humanize }}%. Messages may be delayed."
 
       - alert: RabbitMQQueueGrowth
         expr: rate(rabbitmq_queue_messages[5m]) > 10
@@ -63,8 +63,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "Rapid queue growth on {{ $labels.queue }}"
-          description: "Queue {{ $labels.queue }} is growing at {{ $value }} msg/sec"
+          summary: "📊 Rapid queue growth detected"
+          description: "Queue {{ $labels.queue }} is growing at {{ $value | humanize }} msg/sec"
 
       # PostgreSQL алерты
       - alert: PostgreSQLDown
@@ -73,8 +73,8 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: "PostgreSQL exporter is down"
-          description: "Cannot connect to PostgreSQL"
+          summary: "🐘 PostgreSQL DATABASE DOWN"
+          description: "Cannot connect to PostgreSQL database. Application may be affected!"
 
       - alert: PostgreSQLHighConnections
         expr: pg_stat_activity_count / pg_stat_activity_max_connections > 0.8
@@ -82,8 +82,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "High PostgreSQL connections"
-          description: "PostgreSQL connections are at {{ $value }}% of limit"
+          summary: "🔗 High database connections"
+          description: "PostgreSQL connections at {{ $value | humanize }}% of limit"
 
       # Container алерты
       - alert: ContainerRestarted
@@ -92,5 +92,5 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "Container restarting frequently"
-          description: "Container {{ $labels.container_name }} is restarting too often"
+          summary: "🔄 Container restarting frequently"
+          description: "Container {{ $labels.container_name }} is unstable and restarting often"
