@@ -5,69 +5,58 @@ route:
   group_by: ['alertname', 'instance']
   group_wait: 5s
   group_interval: 5s
-  repeat_interval: 5m
   receiver: 'telegram-default'
   
   routes:
     - match:
         alertname: NodeDown
       group_wait: 3s
-      repeat_interval: 2m
       receiver: 'telegram-node-down'
       
     - match:
         alertname: RabbitMQDown
       group_wait: 3s
-      repeat_interval: 2m
       receiver: 'telegram-rabbit-down'
       
     - match:
         alertname: PostgreSQLDown
       group_wait: 3s
-      repeat_interval: 2m
       receiver: 'telegram-postgres-down'
       
     - match:
         alertname: HighMemoryUsage
       group_wait: 3s
-      repeat_interval: 5m
       receiver: 'telegram-memory-critical'
 
     # ВОРНИНГИ - отдельные сообщения
     - match:
         alertname: HighCPUUsage
       group_wait: 5s
-      repeat_interval: 10m
       receiver: 'telegram-cpu-warning'
       
     - match:
         alertname: HighDiskUsage
       group_wait: 5s
-      repeat_interval: 10m
       receiver: 'telegram-disk-warning'
       
     - match:
         alertname: RabbitMQHighMemory
       group_wait: 5s
-      repeat_interval: 10m
       receiver: 'telegram-rabbit-warning'
       
     - match:
         alertname: RabbitMQQueueGrowth
       group_wait: 5s
-      repeat_interval: 10m
       receiver: 'telegram-queue-warning'
 
     # ОБЩИЕ НАСТРОЙКИ
     - match:
         severity: critical
       receiver: 'telegram-critical'
-      repeat_interval: 5m
       
     - match:
         severity: warning
       receiver: 'telegram-warning'
-      repeat_interval: 15m
 
 receivers:
   # 🖥️ АЛЕРТЫ НА СЕРВИСЫ
@@ -85,6 +74,11 @@ receivers:
 
 🚨 <b>Impact:</b> Service monitoring stopped
 🎯 <b>Action:</b> Check server connectivity'
+
+      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
+            chat_id: 667953047
+            parse_mode: 'HTML'
+            message: '🖥️ <b>SERVICE OFFLINE</b>
 
   - name: 'telegram-rabbit-down'
     telegram_configs:
