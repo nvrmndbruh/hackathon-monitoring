@@ -6,7 +6,7 @@
 
 ## Ссылки на отдельные части проекта
 
-[Система мониторинга (Сервер 1)](https://github.com/nvrmndbruh/hackathon-monitoring)
+[Система мониторинга (Сервер 1)](https://github.com/nvrmndbruh/hackathon-monitoring)  
 [Экспорт данных с сервера (Сервер 2)](https://github.com/nvrmndbruh/hackathon-export)
 
 ### Сервер 1 `hackathon-monitoring`
