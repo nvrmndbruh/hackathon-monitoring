@@ -59,6 +59,7 @@ route:
       receiver: 'telegram-warning'
 
 receivers:
+  # 🖥️ АЛЕРТЫ НА СЕРВИСЫ
   - name: 'telegram-node-down'
     telegram_configs:
       - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
@@ -69,18 +70,7 @@ receivers:
 🔴 <b>Service:</b> {{ .GroupLabels.alertname }}
 📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
 ⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
-
-🚨 <b>Impact:</b> Service monitoring stopped
-🎯 <b>Action:</b> Check server connectivity'
-        
-      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 667953047
-        parse_mode: 'HTML'
-        message: '🖥️ <b>SERVICE OFFLINE</b>
-
-🔴 <b>Service:</b> {{ .GroupLabels.alertname }}
-📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
-⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
+📅 <b>Date:</b> {{ (index .Alerts 0).StartsAt.Format "02.01.2006" }}
 
 🚨 <b>Impact:</b> Service monitoring stopped
 🎯 <b>Action:</b> Check server connectivity'
