@@ -2,218 +2,130 @@ global:
   smtp_smarthost: 'localhost:587'
 
 route:
-  group_by: ['alertname', 'instance']
-  group_wait: 5s
-  group_interval: 5s
-  receiver: 'telegram-default'
+  group_by: ['alertname', 'instance', 'service']
+  group_wait: 1s
+  group_interval: 1s
+  repeat_interval: 2m
+  receiver: 'telegram-service-down'
   
   routes:
+    # ЭКСПОРТЕРЫ DOWN
     - match:
-        alertname: NodeDown
-      group_wait: 3s
-      receiver: 'telegram-node-down'
+        alertname: NodeExporterDown
+      receiver: 'telegram-exporter-down'
+      group_wait: 0s
+      repeat_interval: 1m
       
     - match:
-        alertname: RabbitMQDown
-      group_wait: 3s
-      receiver: 'telegram-rabbit-down'
+        alertname: CadvisorDown
+      receiver: 'telegram-exporter-down'
+      group_wait: 0s
+      repeat_interval: 1m
       
     - match:
-        alertname: PostgreSQLDown
+        alertname: PostgresExporterDown
+      receiver: 'telegram-exporter-down'
+      group_wait: 0s
+      repeat_interval: 1m
+      
+    - match:
+        alertname: RabbitMQExporterDown
+      receiver: 'telegram-exporter-down'
+      group_wait: 0s
+      repeat_interval: 1m
+
+    # СЕРВИСЫ DOWN
+    - match:
+        alertname: RabbitMQServiceDown
+      receiver: 'telegram-service-down'
+      group_wait: 0s
+      repeat_interval: 1m
+      
+    - match:
+        alertname: PostgreSQLServiceDown
+      receiver: 'telegram-service-down'
+      group_wait: 0s
+      repeat_interval: 1m
+
+    # РЕСУРСЫ
+    - match:
+        alertname: HighCPUUsage
+      receiver: 'telegram-resource-warning'
       group_wait: 3s
-      receiver: 'telegram-postgres-down'
+      repeat_interval: 5m
       
     - match:
         alertname: HighMemoryUsage
-      group_wait: 3s
-      receiver: 'telegram-memory-critical'
-
-    # ВОРНИНГИ - отдельные сообщения
-    - match:
-        alertname: HighCPUUsage
-      group_wait: 5s
-      receiver: 'telegram-cpu-warning'
+      receiver: 'telegram-resource-critical'
+      group_wait: 0s
+      repeat_interval: 2m
       
     - match:
         alertname: HighDiskUsage
-      group_wait: 5s
-      receiver: 'telegram-disk-warning'
-      
-    - match:
-        alertname: RabbitMQHighMemory
-      group_wait: 5s
-      receiver: 'telegram-rabbit-warning'
-      
-    - match:
-        alertname: RabbitMQQueueGrowth
-      group_wait: 5s
-      receiver: 'telegram-queue-warning'
-
-    # ОБЩИЕ НАСТРОЙКИ
-    - match:
-        severity: critical
-      receiver: 'telegram-critical'
-      
-    - match:
-        severity: warning
-      receiver: 'telegram-warning'
+      receiver: 'telegram-resource-warning'
+      group_wait: 3s
+      repeat_interval: 5m
 
 receivers:
-  # 🖥️ АЛЕРТЫ НА СЕРВИСЫ
-  - name: 'telegram-node-down'
+  # 📡 ЭКСПОРТЕРЫ DOWN
+  - name: 'telegram-exporter-down'
     telegram_configs:
       - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 1061129761
+        chat_id: 123456789
         parse_mode: 'HTML'
-        message: '🖥️ <b>SERVICE OFFLINE</b>
+        message: '📡 <b>MONITORING EXPORTER DOWN</b>
 
-🔴 <b>Service:</b> {{ .GroupLabels.alertname }}
-📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
-⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
-📅 <b>Date:</b> {{ (index .Alerts 0).StartsAt.Format "02.01.2006" }}
-
-🚨 <b>Impact:</b> Service monitoring stopped
-🎯 <b>Action:</b> Check server connectivity'
-
-  - name: 'telegram-rabbit-down'
-    telegram_configs:
-      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 1061129761
-        parse_mode: 'HTML'
-        message: '🐇 <b>RABBITMQ DOWN</b>
-
-🔴 <b>Service:</b> Message Broker
-📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
+🔴 <b>Service:</b> {{ (index .Alerts 0).Labels.service }}
+📍 <b>Instance:</b> <code>{{ (index .Alerts 0).Labels.instance }}</code>
 ⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
 
-🚨 <b>Impact:</b> Message processing stopped
-🎯 <b>Action:</b> Restart RabbitMQ service'
+📝 <b>Issue:</b> {{ (index .Alerts 0).Annotations.summary }}
+🚨 <b>Impact:</b> {{ (index .Alerts 0).Annotations.description }}
+🎯 <b>Action:</b> Restart the exporter service'
 
-  - name: 'telegram-postgres-down'
+  # 🖥️ СЕРВИСЫ DOWN
+  - name: 'telegram-service-down'
     telegram_configs:
       - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 1061129761
+        chat_id: 123456789
         parse_mode: 'HTML'
-        message: '🐘 <b>POSTGRESQL DOWN</b>
+        message: '🖥️ <b>SERVICE DOWN</b>
 
-🔴 <b>Service:</b> Database
-📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
+🔴 <b>Service:</b> {{ (index .Alerts 0).Labels.service | title }}
+📍 <b>Instance:</b> <code>{{ (index .Alerts 0).Labels.instance }}</code>
 ⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
 
-🚨 <b>Impact:</b> Database access lost
-🎯 <b>Action:</b> Check PostgreSQL service'
+📝 <b>Issue:</b> {{ (index .Alerts 0).Annotations.summary }}
+🚨 <b>Impact:</b> {{ (index .Alerts 0).Annotations.description }}
+🎯 <b>Action:</b> Check and restart the service'
 
-  # 💾 АЛЕРТЫ НА РЕСУРСЫ
-  - name: 'telegram-memory-critical'
+  # 💾 КРИТИЧЕСКИЕ РЕСУРСЫ
+  - name: 'telegram-resource-critical'
     telegram_configs:
       - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 1061129761
+        chat_id: 123456789
         parse_mode: 'HTML'
-        message: '💾 <b>CRITICAL MEMORY USAGE</b>
+        message: '💥 <b>CRITICAL RESOURCE USAGE</b>
 
-🟡 <b>Resource:</b> System Memory
-📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
+🔴 <b>Resource:</b> {{ (index .Alerts 0).Annotations.summary }}
+📍 <b>Instance:</b> <code>{{ (index .Alerts 0).Labels.instance }}</code>
 📊 <b>Usage:</b> {{ (index .Alerts 0).Annotations.description | reReplaceAll ".*is ([0-9.]+).*" "$1" }}%
 ⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
 
-🚨 <b>Risk:</b> System instability
-🎯 <b>Action:</b> Check memory usage and processes'
+🚨 <b>Risk:</b> System instability possible
+🎯 <b>Action:</b> Immediate investigation required'
 
-  - name: 'telegram-cpu-warning'
+  # ⚠️ WARNING РЕСУРСЫ
+  - name: 'telegram-resource-warning'
     telegram_configs:
       - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 1061129761
+        chat_id: 123456789
         parse_mode: 'HTML'
-        message: '🔥 <b>HIGH CPU USAGE</b>
+        message: '⚠️ <b>RESOURCE WARNING</b>
 
-🟡 <b>Resource:</b> Processor
-📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
+🟡 <b>Resource:</b> {{ (index .Alerts 0).Annotations.summary }}
+📍 <b>Instance:</b> <code>{{ (index .Alerts 0).Labels.instance }}</code>
 📊 <b>Usage:</b> {{ (index .Alerts 0).Annotations.description | reReplaceAll ".*is ([0-9.]+).*" "$1" }}%
 ⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
 
-💡 <b>Recommendation:</b> Optimize workloads'
-
-  - name: 'telegram-disk-warning'
-    telegram_configs:
-      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 1061129761
-        parse_mode: 'HTML'
-        message: '💽 <b>HIGH DISK USAGE</b>
-
-🟡 <b>Resource:</b> Storage
-📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
-📊 <b>Usage:</b> {{ (index .Alerts 0).Annotations.description | reReplaceAll ".*is ([0-9.]+).*" "$1" }}%
-⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
-
-💡 <b>Recommendation:</b> Clean up disk space'
-
-  # 🐇 RABBITMQ WARNINGS
-  - name: 'telegram-rabbit-warning'
-    telegram_configs:
-      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 1061129761
-        parse_mode: 'HTML'
-        message: '📈 <b>RABBITMQ MEMORY WARNING</b>
-
-🟡 <b>Service:</b> Message Broker
-📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
-📊 <b>Memory Usage:</b> {{ (index .Alerts 0).Annotations.description | reReplaceAll ".*is ([0-9.]+).*" "$1" }}%
-⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
-
-💡 <b>Note:</b> High memory usage may cause message delays'
-
-  - name: 'telegram-queue-warning'
-    telegram_configs:
-      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 1061129761
-        parse_mode: 'HTML'
-        message: '📊 <b>QUEUE GROWTH DETECTED</b>
-
-🟡 <b>Service:</b> RabbitMQ Queue
-📍 <b>Queue:</b> {{ .GroupLabels.queue }}
-📈 <b>Growth Rate:</b> {{ (index .Alerts 0).Annotations.description | reReplaceAll ".*at ([0-9.]+).*" "$1" }} msg/sec
-⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
-
-💡 <b>Note:</b> Queue is growing faster than messages are processed'
-
-  # 🔧 ОБЩИЕ РЕСИВЕРЫ (если не попали в конкретные)
-  - name: 'telegram-critical'
-    telegram_configs:
-      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 1061129761
-        parse_mode: 'HTML'
-        message: '🚨 <b>CRITICAL ALERT</b>
-
-🔴 <b>Alert:</b> {{ .GroupLabels.alertname }}
-📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
-⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
-
-{{ (index .Alerts 0).Annotations.summary }}
-🎯 <b>Action Required:</b> Immediate investigation'
-
-  - name: 'telegram-warning'
-    telegram_configs:
-      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 1061129761
-        parse_mode: 'HTML'
-        message: '⚠️ <b>WARNING ALERT</b>
-
-🟡 <b>Alert:</b> {{ .GroupLabels.alertname }}
-📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
-⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
-
-{{ (index .Alerts 0).Annotations.summary }}
-💡 <b>Monitor:</b> Keep watching the situation'
-
-  - name: 'telegram-default'
-    telegram_configs:
-      - bot_token: '8122760259:AAGmxaNBuRBa3Czomez_hTd1BI5G37M2pN8'
-        chat_id: 1061129761
-        parse_mode: 'HTML'
-        message: '🔔 <b>ALERT NOTIFICATION</b>
-
-📢 <b>Alert:</b> {{ .GroupLabels.alertname }}
-📍 <b>Instance:</b> <code>{{ .GroupLabels.instance }}</code>
-⏰ <b>Time:</b> {{ (index .Alerts 0).StartsAt.Format "15:04:05" }}
-
-{{ (index .Alerts 0).Annotations.summary }}'
+💡 <b>Note:</b> Monitor the situation'
